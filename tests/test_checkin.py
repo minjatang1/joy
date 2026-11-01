@@ -33,6 +33,15 @@ class CheckinTests(unittest.TestCase):
             with self.subTest(message=message):
                 self.assertEqual(self.check_response({'code': '382004', 'msg': message}), '今天已签到')
 
+    def test_already_signed_code_with_formatted_message(self):
+        for code in ['382004', 382004]:
+            with self.subTest(code=code):
+                self.assertEqual(self.check_response({'code': code, 'msg': '<span>今天已签到</span>'}), '今天已签到')
+
+    def test_unknown_code_is_not_accepted(self):
+        with self.assertRaises(RuntimeError):
+            self.check_response({'code': '382005', 'msg': '签到失败'})
+
     def test_safe_error_details(self):
         with self.assertRaises(RuntimeError) as result:
             self.check_response({'code': '100001', 'msg': '请先登录 fake-cookie SUB=secret-token https://example.com'})

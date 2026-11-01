@@ -56,6 +56,8 @@ def checkin(cookie, identifier):
         raise RuntimeError('微博响应格式异常')
     if str(payload.get('code')) == '100000':
         return '签到成功'
+    if str(payload.get('code')) == '382004':
+        return '今天已签到'
     message = payload.get('msg', '')
     if isinstance(message, str) and re.fullmatch(
         r'(?:您|你)?(?:今天|今日)?已(?:经)?签到(?:过)?(?:了)?[！!。.]?', message.strip()
