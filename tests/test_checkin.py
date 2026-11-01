@@ -29,7 +29,18 @@ class CheckinTests(unittest.TestCase):
         self.assertEqual(self.check_response({'code': '100000'}), '签到成功')
 
     def test_already_signed(self):
-        self.assertEqual(self.check_response({'code': '382004', 'msg': '今天已签到'}), '今天已签到')
+        for message in ['今天已签到', '您今天已经签到过了！', '今日已经签到', '已经签到']:
+            with self.subTest(message=message):
+                self.assertEqual(self.check_response({'code': '382004', 'msg': message}), '今天已签到')
+
+    def test_safe_error_details(self):
+        with self.assertRaises(RuntimeError) as result:
+            self.check_response({'code': '100001', 'msg': '请先登录 fake-cookie SUB=secret-token https://example.com'})
+        self.assertIn('返回码=100001', str(result.exception))
+        self.assertIn('请先登录', str(result.exception))
+        self.assertNotIn('fake-cookie', str(result.exception))
+        self.assertNotIn('secret-token', str(result.exception))
+        self.assertNotIn('example.com', str(result.exception))
 
     def test_failure_is_not_success(self):
         for payload in [{'code': '100001', 'msg': '请先登录'}, {}, [], {'code': '100001', 'msg': '签到失败'}, {'code': '100001', 'msg': '无法确认已签到'}]:

@@ -57,10 +57,19 @@ def checkin(cookie, identifier):
     if str(payload.get('code')) == '100000':
         return '签到成功'
     message = payload.get('msg', '')
-    if isinstance(message, str) and re.fullmatch(r'(?:今天已签到|今日已签到|已经签到|已签到)[！!。.]?', message.strip()):
+    if isinstance(message, str) and re.fullmatch(
+        r'(?:您|你)?(?:今天|今日)?已(?:经)?签到(?:过)?(?:了)?[！!。.]?', message.strip()
+    ):
         return '今天已签到'
-    # Never log raw responses, headers, or cookies.
-    raise RuntimeError('微博未确认签到成功；请检查账号、关注状态、登录有效期或接口变更')
+    # Show only bounded numeric codes and Chinese text, never raw response data,
+    # URLs, tokens, account IDs or cookie/header values.
+    code = str(payload.get('code', ''))
+    safe_code = code if re.fullmatch(r'[0-9]{1,12}', code) else '缺失或未知'
+    safe_message = ''
+    if isinstance(message, str):
+        safe_message = re.sub(r'[^\u4e00-\u9fff，。！？、：；（） ]', '', message.replace(cookie, ''))[:100]
+    detail = safe_message.strip() or '无可安全显示的中文提示'
+    raise RuntimeError(f'微博未确认签到成功；返回码={safe_code}；微博提示={detail}')
 
 
 def main():
