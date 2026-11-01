@@ -28,6 +28,7 @@ jobs:
       - name: Run tests
         run: python -m unittest discover -s tests -v
       - name: Sign in
+        id: checkin
         env:
           WEIBO_COOKIE: ${{ secrets.WEIBO_COOKIE }}
           WEIBO_TOPIC_ZHANG_WONYOUNG: ${{ vars.WEIBO_TOPIC_ZHANG_WONYOUNG || '1008080637ba9df8242042bba48c63aa59f947' }}
@@ -35,8 +36,21 @@ jobs:
           VALIDATE_ONLY: ${{ inputs.validate_only }}
         shell: bash
         run: |
+          set +e
           if [[ "$VALIDATE_ONLY" == "true" ]]; then
-            python weibo_checkin.py --validate-only
+            python weibo_checkin.py --validate-only > "$RUNNER_TEMP/weibo-result.txt" 2>&1
           else
-            python weibo_checkin.py
+            python weibo_checkin.py > "$RUNNER_TEMP/weibo-result.txt" 2>&1
           fi
+          result=$?
+          set -e
+          cat "$RUNNER_TEMP/weibo-result.txt"
+          exit "$result"
+      - name: Email check-in report
+        if: ${{ always() }}
+        env:
+          SMTP_USERNAME: ${{ secrets.SMTP_USERNAME }}
+          SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
+          MAIL_TO: ${{ secrets.MAIL_TO }}
+          CHECKIN_OUTCOME: ${{ steps.checkin.outcome }}
+        run: python notify_email.py
